@@ -1,0 +1,37 @@
+from sklearn.tree import DecisionTreeRegressor, plot_tree
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import KFold, GridSearchCV
+from pdpbox import pdp, info_plots 
+import shap
+
+
+# Decision Trees
+dt = DecisionTreeRegressor(min_impurity_decrease=0.01, max_depth=5, random_state=0, min_samples_split=50)
+dt.fit(X, y)
+plt.subplots(figsize=(15, 12))
+plot_tree(dt, feature_names=X.columns, fontsize=10, filled=True)
+plt.show()
+
+# Random Forest Modeling
+rf = RandomForestRegressor(n_estimators = 200)
+param_grid = {'max_features':[2,3,4,5,6,7],'random_state':[0]}
+cv = KFold(n_splits=5)
+gcv = GridSearchCV(rf, param_grid=param_grid, cv=cv)
+gcv.fit(X, y)
+gcv.best_params_
+rf = RandomForestRegressor(n_estimators = 200, max_features=4, random_state=0)
+rf.fit(X, y)
+
+# PDP plot
+inter1 = pdp.pdp_interact(model=rf, dataset=X, model_features=X.columns, features=['IOP_SD','IOP_Max'])
+pdp.pdp_interact_plot(pdp_interact_out=inter1, feature_names=['IOP_SD','IOP_Max'], plot_type='contour')
+plt.show()
+pdp_dist = pdp.pdp_isolate(model=rf, dataset=X, model_features=X.columns, num_grid_points=21, feature='IOP_SD')
+pdp.pdp_plot(pdp_dist, 'IOP_SD', figsize=(8,8))
+plt.show()
+
+# SHAP
+explainer = shap.TreeExplainer(rf)
+shap_values = explainer.shap_values(X)
+shap.summary_plot(shap_values, X, plot_type='bar',max_display=25)
+shap.summary_plot(shap_values, X, max_display=25)
